@@ -43,6 +43,7 @@ class PhishingDetector:
             "invoice",
             "helpdesk",
         }
+codex/create-phishing-detection-website-e6jnf6
         self.common_brands = {
             "google",
             "microsoft",
@@ -59,6 +60,8 @@ class PhishingDetector:
             "aws",
             "azure",
         }
+=======
+main
 
     def _build_text_model(self) -> Pipeline:
         """Train a compact TF-IDF + LogisticRegression model on seed phrases."""
@@ -102,6 +105,7 @@ class PhishingDetector:
         model.fit(corpus, labels)
         return model
 
+codex/create-phishing-detection-website-e6jnf6
     def fetch_page(self, url: str) -> Tuple[str, str, BeautifulSoup]:
         """Fetch page content and return raw HTML, visible text, and a soup tree."""
 
@@ -111,6 +115,12 @@ class PhishingDetector:
             headers={"User-Agent": "Mozilla/5.0 (phishing-detector)"},
             allow_redirects=True,
         )
+=======
+    def fetch_page(self, url: str) -> Tuple[str, str]:
+        """Fetch page content and return raw HTML and extracted visible text."""
+
+        response = requests.get(url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+main
         response.raise_for_status()
         html = response.text
 
@@ -120,8 +130,13 @@ class PhishingDetector:
             element.decompose()
 
         texts = [chunk.strip() for chunk in soup.stripped_strings if chunk.strip()]
+codex/create-phishing-detection-website-e6jnf6
         visible_text = " ".join(texts[:2400])
         return html, visible_text, soup
+=======
+        visible_text = " ".join(texts[:1200])
+        return html, visible_text
+main
 
     def analyze_url(self, url: str) -> Dict[str, float]:
         parsed = urlparse(url)
@@ -139,8 +154,11 @@ class PhishingDetector:
         digit_ratio = sum(char.isdigit() for char in hostname) / max(len(hostname), 1)
         tld_suspicious = ext.suffix.split(".")[-1] in self.suspicious_tlds if ext.suffix else False
         keyword_hits = sum(1 for kw in self.suspicious_keywords if kw in url.lower())
+codex/create-phishing-detection-website-e6jnf6
         punycode = hostname.startswith("xn--")
         repeated_chars = bool(re.search(r"(.)\1{3,}", hostname))
+=======
+main
 
         score = 0.0
         score += 0.3 if has_ip else 0
@@ -153,8 +171,11 @@ class PhishingDetector:
         score += 0.05 if query_length > 60 else 0
         score += 0.1 if digit_ratio > 0.25 else 0
         score += 0.1 if tld_suspicious else 0
+codex/create-phishing-detection-website-e6jnf6
         score += 0.05 if punycode else 0
         score += 0.05 if repeated_chars else 0
+=======
+main
         score += min(0.2, 0.05 * keyword_hits)
 
         return {
@@ -170,8 +191,11 @@ class PhishingDetector:
             "digit_ratio": digit_ratio,
             "tld_suspicious": float(tld_suspicious),
             "keyword_hits": float(keyword_hits),
+codex/create-phishing-detection-website-e6jnf6
             "punycode": float(punycode),
             "repeated_chars": float(repeated_chars),
+=======
+main
         }
 
     def analyze_html(self, html: str, page_text: str, hostname: str) -> Dict[str, float]:
@@ -183,7 +207,10 @@ class PhishingDetector:
         external_forms = re.findall(r"<form[^>]+action=\"(http[^\"]+)\"", lower_html)
         encoded_scripts = re.findall(r"(eval\(|base64|fromcharcode)", lower_html)
         iframe_count = lower_html.count("<iframe")
+codex/create-phishing-detection-website-e6jnf6
         credential_fields = len(re.findall(r"type=\"password\"", lower_html))
+=======
+ main
 
         brand_mismatch = False
         if brand_tokens:
@@ -196,7 +223,10 @@ class PhishingDetector:
         score += 0.1 if external_forms else 0
         score += 0.1 if encoded_scripts else 0
         score += 0.05 if iframe_count > 0 else 0
+codex/create-phishing-detection-website-e6jnf6
         score += 0.05 if credential_fields > 0 else 0
+=======
+ main
         score += 0.1 if brand_mismatch else 0
         score += min(0.2, 0.04 * suspicious_keywords)
 
@@ -205,11 +235,15 @@ class PhishingDetector:
             "external_forms": float(len(external_forms)),
             "encoded_scripts": float(len(encoded_scripts)),
             "iframe_count": float(iframe_count),
+ codex/create-phishing-detection-website-e6jnf6
             "credential_fields": float(credential_fields),
+=======
+ main
             "brand_mismatch": float(brand_mismatch),
             "suspicious_keywords": float(suspicious_keywords),
         }
 
+ codex/create-phishing-detection-website-e6jnf6
     def analyze_links(self, soup: BeautifulSoup, hostname: str) -> Dict[str, float]:
         links = [a.get("href", "") for a in soup.find_all("a")]
         parsed_host = urlparse(f"//{hostname}").hostname or hostname
@@ -283,26 +317,46 @@ class PhishingDetector:
         verdict = "phishing" if combined_score >= 0.5 else "legitimate"
 
         reasons = self._collect_reasons(url_data, html_data, link_data, text_vs_url_data, text_proba)
+=======
+    def predict(self, url: str) -> Dict[str, object]:
+        url_data = self.analyze_url(url)
+        html, text = self.fetch_page(url)
+        html_data = self.analyze_html(html, text, urlparse(url).hostname or "")
+
+        text_proba = float(self.text_model.predict_proba([text])[0][1])
+
+        combined_score = 0.5 * url_data["score"] + 0.3 * html_data["score"] + 0.2 * text_proba
+        verdict = "phishing" if combined_score >= 0.5 else "legitimate"
+
+        reasons = self._collect_reasons(url_data, html_data, text_proba)
+ main
 
         return {
             "verdict": verdict,
             "combined_score": round(combined_score, 3),
             "url_features": url_data,
             "html_features": html_data,
+ codex/create-phishing-detection-website-e6jnf6
             "link_features": link_data,
             "text_url_alignment": text_vs_url_data,
+=======
+ main
             "text_probability": round(text_proba, 3),
             "page_excerpt": text[:8000],
             "reasons": reasons,
         }
 
     def _collect_reasons(
+ codex/create-phishing-detection-website-e6jnf6
         self,
         url_data: Dict[str, float],
         html_data: Dict[str, float],
         link_data: Dict[str, float],
         text_vs_url_data: Dict[str, float],
         text_proba: float,
+=======
+        self, url_data: Dict[str, float], html_data: Dict[str, float], text_proba: float
+ main
     ) -> List[str]:
         reasons = []
         if url_data["has_ip"]:
@@ -319,22 +373,29 @@ class PhishingDetector:
             reasons.append("Uncommon or free top-level domain.")
         if url_data["keyword_hits"]:
             reasons.append("URL contains urgency or credential keywords.")
+ codex/create-phishing-detection-website-e6jnf6
         if url_data["punycode"]:
             reasons.append("Hostname uses punycode encoding.")
         if url_data["repeated_chars"]:
             reasons.append("Hostname has long repeated characters.")
+=======
+ main
         if html_data["external_forms"]:
             reasons.append("Form posts to an external domain.")
         if html_data["encoded_scripts"]:
             reasons.append("Obfuscated scripts detected.")
         if html_data["iframe_count"]:
             reasons.append("Uses iframes, which phishers often abuse.")
+ codex/create-phishing-detection-website-e6jnf6
         if html_data["credential_fields"]:
             reasons.append("Page requests credentials.")
+=======
+ main
         if html_data["brand_mismatch"]:
             reasons.append("Brand names in text do not match the domain.")
         if html_data["suspicious_keywords"]:
             reasons.append("Page text contains phishing-related keywords.")
+ codex/create-phishing-detection-website-e6jnf6
         if link_data["external_link_domains"]:
             reasons.append("Contains multiple external links away from the host.")
         if link_data["suspicious_text_links"]:
@@ -345,6 +406,8 @@ class PhishingDetector:
             reasons.append("Page asks for credentials.")
         if text_vs_url_data["urgent_language"]:
             reasons.append("Uses urgent language.")
+=======
+ main
         if text_proba > 0.6:
             reasons.append("AI text model finds the content similar to phishing pages.")
         elif text_proba < 0.25:
@@ -352,11 +415,14 @@ class PhishingDetector:
         return reasons
 
     @staticmethod
+ codex/create-phishing-detection-website-e6jnf6
     def _extract_domain_brand(hostname: str) -> str:
         ext = tldextract.extract(hostname)
         return ext.domain.lower() if ext.domain else ""
 
     @staticmethod
+=======
+ main
     def _is_ip(hostname: str) -> bool:
         try:
             socket.inet_aton(hostname)
