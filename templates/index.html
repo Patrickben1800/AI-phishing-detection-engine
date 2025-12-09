@@ -49,6 +49,11 @@
                 <li>Length: {{ result.url_features.url_length | int }} characters</li>
                 <li>Keyword hits: {{ result.url_features.keyword_hits | int }}</li>
                 <li>Suspicious TLD: {{ 'Yes' if result.url_features.tld_suspicious else 'No' }}</li>
+ codex/create-phishing-detection-website-e6jnf6
+                <li>Punycode / homoglyphs: {{ 'Yes' if result.url_features.punycode else 'No' }}</li>
+                <li>Repeated chars: {{ 'Yes' if result.url_features.repeated_chars else 'No' }}</li>
+=======
+ main
               </ul>
             </div>
             <div>
@@ -57,11 +62,28 @@
                 <li>External form actions: {{ result.html_features.external_forms | int }}</li>
                 <li>Obfuscated scripts: {{ result.html_features.encoded_scripts | int }}</li>
                 <li>Iframes: {{ result.html_features.iframe_count | int }}</li>
+ codex/create-phishing-detection-website-e6jnf6
+                <li>Credential fields: {{ result.html_features.credential_fields | int }}</li>
+=======
+ main
                 <li>Brand mismatch: {{ 'Yes' if result.html_features.brand_mismatch else 'No' }}</li>
                 <li>Keyword hits: {{ result.html_features.suspicious_keywords | int }}</li>
               </ul>
             </div>
             <div>
+ codex/create-phishing-detection-website-e6jnf6
+              <h3>Links and text alignment</h3>
+              <ul>
+                <li>External link domains: {{ result.link_features.external_link_domains | int }}</li>
+                <li>Suspicious link text: {{ result.link_features.suspicious_text_links | int }}</li>
+                <li>Domain brand: {{ result.text_url_alignment.domain_brand or 'Unknown' }}</li>
+                <li>Unrelated brand mentions: {{ 'Yes' if result.text_url_alignment.unrelated_brand else 'No' }}</li>
+                <li>Asks for credentials: {{ 'Yes' if result.text_url_alignment.credential_request else 'No' }}</li>
+              </ul>
+            </div>
+            <div>
+=======
+ main
               <h3>AI text score</h3>
               <p>Similarity to phishing text: {{ '%.0f' % (result.text_probability * 100) }}%</p>
               <p class="muted">We vectorize the visible text and run a logistic model for a quick signal.</p>
