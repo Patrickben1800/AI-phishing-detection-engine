@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Phishing Detection</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="badge">AI-powered</div>
+        <h1>Real-time Phishing Detection</h1>
+        <p>Analyze a web page by URL. We cross-check the link, visible text, and HTML signals to flag phishing attempts fast.</p>
+      </header>
+
+      <main>
+        <section class="card">
+          <form method="post" class="url-form">
+            <label for="url">Website URL</label>
+            <div class="input-row">
+              <input id="url" name="url" type="url" value="{{ url or '' }}" placeholder="https://example.com" required />
+              <button type="submit">Scan</button>
+            </div>
+            <p class="hint">We only read the public page HTML and visible text. No credentials are stored.</p>
+          </form>
+          {% if error %}
+          <div class="alert alert-error">{{ error }}</div>
+          {% endif %}
+        </section>
+
+        {% if result %}
+        <section class="card result">
+          <div class="verdict {{ result.verdict }}">
+            <div class="score">{{ '%.0f' % (result.combined_score * 100) }}%</div>
+            <div>
+              <p class="label">Risk score</p>
+              <h2>{{ result.verdict|capitalize }}</h2>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div>
+              <h3>Signals from URL</h3>
+              <ul>
+                <li>HTTPS: {{ 'Yes' if result.url_features.is_https else 'No' }}</li>
+                <li>Subdomain count: {{ result.url_features.num_dots | int }}</li>
+                <li>Length: {{ result.url_features.url_length | int }} characters</li>
+                <li>Keyword hits: {{ result.url_features.keyword_hits | int }}</li>
+                <li>Suspicious TLD: {{ 'Yes' if result.url_features.tld_suspicious else 'No' }}</li>
+                <li>Punycode / homoglyphs: {{ 'Yes' if result.url_features.punycode else 'No' }}</li>
+                <li>Repeated chars: {{ 'Yes' if result.url_features.repeated_chars else 'No' }}</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Signals from page HTML</h3>
+              <ul>
+                <li>External form actions: {{ result.html_features.external_forms | int }}</li>
+                <li>Obfuscated scripts: {{ result.html_features.encoded_scripts | int }}</li>
+                <li>Iframes: {{ result.html_features.iframe_count | int }}</li>
+                <li>Credential fields: {{ result.html_features.credential_fields | int }}</li>
+                <li>Brand mismatch: {{ 'Yes' if result.html_features.brand_mismatch else 'No' }}</li>
+                <li>Keyword hits: {{ result.html_features.suspicious_keywords | int }}</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Links and text alignment</h3>
+              <ul>
+                <li>External link domains: {{ result.link_features.external_link_domains | int }}</li>
+                <li>Suspicious link text: {{ result.link_features.suspicious_text_links | int }}</li>
+                <li>Domain brand: {{ result.text_url_alignment.domain_brand or 'Unknown' }}</li>
+                <li>Unrelated brand mentions: {{ 'Yes' if result.text_url_alignment.unrelated_brand else 'No' }}</li>
+                <li>Asks for credentials: {{ 'Yes' if result.text_url_alignment.credential_request else 'No' }}</li>
+              </ul>
+            </div>
+            <div>
+              <h3>AI text score</h3>
+              <p>Similarity to phishing text: {{ '%.0f' % (result.text_probability * 100) }}%</p>
+              <p class="muted">We vectorize the visible text and run a logistic model for a quick signal.</p>
+            </div>
+          </div>
+
+          {% if result.reasons %}
+          <div class="alert alert-info">
+            <h4>Why this verdict</h4>
+            <ul>
+              {% for reason in result.reasons %}
+              <li>{{ reason }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          {% if result.page_excerpt %}
+          <details class="excerpt">
+            <summary>Page text (truncated)</summary>
+            <p>{{ result.page_excerpt }}</p>
+          </details>
+          {% endif %}
+        </section>
+        {% endif %}
+      </main>
+
+      <footer>
+        <p>Fast, client-safe analysis using request scraping and lightweight AI. Built for demos only.</p>
+      </footer>
+    </div>
+  </body>
+</html>
